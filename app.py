@@ -9,7 +9,7 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 st.set_page_config(page_title="MedClassify", page_icon="🧠", layout="wide")
 
 # -----------------------------
-# CSS (Professional UI)
+# CSS 
 # -----------------------------
 st.markdown("""
 <style>
@@ -20,7 +20,7 @@ body {
 /* Title */
 .title {
     text-align: center;
-    font-size: 42px;
+    font-size: 44px;
     font-weight: bold;
 }
 .subtitle {
@@ -31,12 +31,17 @@ body {
 
 /* Button */
 .stButton>button {
-    background: linear-gradient(90deg, #16a34a, #22c55e);
+    background: linear-gradient(90deg, #10b981, #22c55e);
     color: white;
     border-radius: 10px;
     height: 45px;
     font-size: 16px;
     border: none;
+    transition: 0.3s;
+}
+.stButton>button:hover {
+    transform: scale(1.03);
+    box-shadow: 0px 0px 10px rgba(34,197,94,0.6);
 }
 
 /* Input */
@@ -49,10 +54,10 @@ textarea {
 
 /* Result box */
 .result-box {
-    background: linear-gradient(90deg, #064e3b, #16a34a);
+    background: linear-gradient(90deg, #065f46, #22c55e);
     padding: 18px;
     border-radius: 12px;
-    box-shadow: 0px 0px 12px rgba(34,197,94,0.4);
+    box-shadow: 0px 0px 15px rgba(34,197,94,0.4);
     font-size: 20px;
     font-weight: 600;
 }
@@ -67,13 +72,18 @@ textarea {
 """, unsafe_allow_html=True)
 
 # -----------------------------
-# Load Model
+# LOAD MODEL 
 # -----------------------------
-MODEL_PATH = "biobert_model"
+MODEL_PATH = "malleshwarib/medclassify-model"
 
-tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
-model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH)
-model.eval()
+@st.cache_resource
+def load_model():
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
+    model = AutoModelForSequenceClassification.from_pretrained(MODEL_PATH)
+    model.eval()
+    return tokenizer, model
+
+tokenizer, model = load_model()
 
 label_map = {
     0: "Diagnostic",
@@ -124,7 +134,6 @@ with col1:
 # RIGHT (Graph)
 with col2:
     st.markdown("### 📈 Model Confidence")
-
     graph_container = st.container()
 
 st.markdown("---")
@@ -133,26 +142,25 @@ st.markdown("---")
 # Prediction
 # -----------------------------
 if analyze:
-    if len(user_input.strip()) < 10:
+    if len(user_input.strip().split()) < 3:
         st.warning("⚠️ Please enter a meaningful medical question.")
     else:
-        with st.spinner("Analyzing medical question..."):
+        with st.spinner("🧠 Analyzing..."):
             pred_label, probs = predict(user_input)
 
         confidence = float(torch.max(probs))
 
-        # -------- GRAPH (RIGHT SIDE FIXED) --------
+        # -------- GRAPH (IMPROVED) --------
         with graph_container:
             for i, label in enumerate(label_map.values()):
                 value = float(probs[i])
 
-                # Highlight predicted class
                 if label == pred_label:
                     st.markdown(f"<div class='graph-label'><b>{label} (Predicted)</b> — {value:.2f}</div>", unsafe_allow_html=True)
+                    st.progress(value)
                 else:
                     st.markdown(f"<div class='graph-label'>{label} — {value:.2f}</div>", unsafe_allow_html=True)
-
-                st.progress(value)
+                    st.progress(value)
 
         # -------- RESULT --------
         st.markdown("### 📊 Result")
@@ -180,7 +188,7 @@ MedClassify is a Natural Language Processing (NLP) project that classifies medic
 - Preventive  
 - Prognostic  
 
-The system is trained on labeled medical datasets using transformer-based models.
+The system is powered by a fine-tuned BioBERT model.
 """)
 
 # -----------------------------
